@@ -7,7 +7,7 @@ import { dkey } from './util.js';
 
 export function profileParams(s) {
   const w = store.all('weight').sort((a, b) => a.date < b.date ? 1 : -1)[0];
-  return { weightKg: s.startWeightKg || w?.kg || null, goalWeightKg: s.goalWeightKg || null, studyWeeklyMin: s.studyWeeklyMin, workoutsPerWeek: s.workoutsPerWeek,
+  return { weightKg: s.startWeightKg || w?.kg || null, goalWeightKg: s.goalWeightKg || null, goalDate: s.goalDate || null, studyWeeklyMin: s.studyWeeklyMin, workoutsPerWeek: s.workoutsPerWeek,
     usmleStep: s.usmleStep || 1, usmleDate: s.usmleDate || null, fixed: s.finFixed || null };
 }
 

@@ -24,7 +24,7 @@ function anketa(D) {
     <div class="card-h"><h2>Анкета</h2><span class="sp"></span><span class="small ${pr.done === pr.total ? 'good' : 'warn'}">обязательных: ${pr.done} из ${pr.total}</span></div>
     <div class="small muted" style="margin-bottom:12px">Заполни один раз и сохрани. Отсюда считаются калории, меню, тренировки, расписание, цели и стратегия. Звёздочкой отмечено обязательное, остальное по желанию. Шаги, сон, пульс и вес потом приходят из Apple Health сами.</div>
     <form data-f="anketa" class="col" style="gap:18px">
-      <fieldset><legend>Тело</legend><div class="fg">${sel('sex', 'Пол', [['m', 'Мужской'], ['f', 'Женский']], true)}${f('age', 'Возраст', 'number', 'min="16" max="90"', true)}${f('heightCm', 'Рост, см', 'number', 'min="120" max="230"', true)}${f('startWeightKg', 'Вес сейчас, кг', 'number', 'min="35" max="300"', true)}${f('goalWeightKg', 'Целевой вес, кг', 'number', 'min="35" max="300"')}</div></fieldset>
+      <fieldset><legend>Тело</legend><div class="fg">${sel('sex', 'Пол', [['m', 'Мужской'], ['f', 'Женский']], true)}${f('age', 'Возраст', 'number', 'min="16" max="90"', true)}${f('heightCm', 'Рост, см', 'number', 'min="120" max="230"', true)}${f('startWeightKg', 'Вес сейчас, кг', 'number', 'min="35" max="300"', true)}${f('goalWeightKg', 'Целевой вес, кг', 'number', 'min="35" max="300"')}${f('goalDate', 'К какой дате', 'date')}</div></fieldset>
       <fieldset><legend>Здоровье и тренировки</legend><div class="fg">
         <label class="f" style="grid-column:1/-1"><span>Ограничения для нагрузок${req}</span><input type="text" name="healthLimits" value="${esc(s.healthLimits ?? '')}" placeholder="Например: «нет» или «болит колено при беге»"></label>
         ${sel('fitnessLevel', 'Уровень подготовки', [['beginner', 'Начинаю или давно не занимался'], ['mid', 'Занимаюсь нерегулярно'], ['adv', 'Регулярно тренируюсь']])}
@@ -195,6 +195,7 @@ onForm({ 'anketa': async (o) => {
   for (const [k, v] of Object.entries(rest)) out[k] = num.includes(k) ? (v === '' || v == null ? null : Number(v)) : v;
   for (const k of ['studyWeeklyMin', 'workoutsPerWeek', 'usmleStep']) if (out[k] == null) delete out[k];
   if (out.healthLimits === '') delete out.healthLimits;
+  if (out.goalDate === '') out.goalDate = null;
   const D = window.__D;
   const merged = { ...(store.get('settings') || {}), ...out };
   out.anketaDone = anketaProgress(merged).done === anketaProgress(merged).total;

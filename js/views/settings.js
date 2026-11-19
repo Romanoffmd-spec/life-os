@@ -24,7 +24,7 @@ function profile(D) {
     <div class="card c6"><div class="card-h"><h2>Тело</h2></div><div class="fg">
       ${f('name', 'Имя', s.name, 'text')}
       <label class="f">Пол<select name="sex">${opts([['m', 'Мужской'], ['f', 'Женский']], s.sex)}</select></label>
-      ${f('age', 'Возраст', s.age)}${f('heightCm', 'Рост, см', s.heightCm)}${f('goalWeightKg', 'Целевой вес, кг', s.goalWeightKg)}
+      ${f('age', 'Возраст', s.age)}${f('heightCm', 'Рост, см', s.heightCm)}${f('goalWeightKg', 'Целевой вес, кг', s.goalWeightKg)}<label class="f">Срок цели<input type="date" name="goalDate" value="${esc(s.goalDate || '')}"></label>
       <label class="f">Темп, % веса/нед<select name="goalRatePct">${opts([[0.25, '0,25 (очень мягко)'], [0.5, '0,5 (мягко)'], [0.6, '0,6 (рекомендуется)'], [0.75, '0,75'], [1, '1,0 (максимум)']], s.goalRatePct)}</select></label>
       <label class="f">Активность вне тренировок<select name="activityFactor">${opts([[1.3, 'Сидячая'], [1.45, 'На ногах часть дня (операционная, обходы)'], [1.6, 'Много на ногах']], s.activityFactor)}</select></label>
     </div><div class="tiny muted" style="margin-top:8px">Темп больше 1% в неделю приложение не предлагает: при нём теряется мышечная масса и падает работоспособность.</div></div>
@@ -194,7 +194,7 @@ onForm({
   'settings': (o) => {
     const num = ['age', 'heightCm', 'goalWeightKg', 'goalRatePct', 'activityFactor', 'workoutsPerWeek', 'workoutMin', 'stepsTarget', 'waterTargetMl', 'sleepTargetH', 'leisureMinDaily', 'commuteMin', 'decompressMin', 'dinnerMin', 'choresMin', 'windDownMin', 'focusSpanMin'];
     const out = {};
-    for (const [k, v] of Object.entries(o)) out[k] = num.includes(k) ? (v === '' || v == null ? (k === 'goalWeightKg' ? null : DEFAULT_SETTINGS[k]) : Number(v)) : v;
+    for (const [k, v] of Object.entries(o)) out[k] = num.includes(k) ? (v === '' || v == null ? (k === 'goalWeightKg' ? null : DEFAULT_SETTINGS[k]) : Number(v)) : (k === 'goalDate' && !v ? null : v);
     saveSettings(out); toast('Сохранено, план пересчитан');
   },
   'settings-learn': (o) => {

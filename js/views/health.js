@@ -97,7 +97,7 @@ function menu(D) {
 function training(D) {
   const wk = D.programWeek, ph = phaseFor(wk), place = D.settings.trainPlace || 'gym';
   const base = (() => { const v = rangeKeys(D.today, 14).map(k => D.daily[k]?.steps).filter(Boolean); return v.length ? v.reduce((a, b) => a + b) / v.length : null; })();
-  const st = stepsTarget(base, wk, D.settings.stepsTarget || 9000);
+  const st = stepsTarget(base, wk, D.settings.goalDate ? Math.max(10000, D.settings.stepsTarget || 0) : (D.settings.stepsTarget || 9000));
   const sess = l => trainingSession(l, wk, place);
   const hist = D.workouts.filter(w => w.session).sort((a, b) => a.date < b.date ? 1 : -1).slice(0, 6);
   return `<div class="note" style="margin-bottom:12px">Неделя ${wk} из 12, фаза «${ph.name}»: ${ph.sets} подхода по ${ph.reps}, усилие ${ph.rpe}, отдых ${ph.rest}. Место: ${place === 'home' ? 'дома' : 'зал'}. Следующая по очереди: <b>${D.nextLetter}</b>.${D.settings.healthLimits ? ` Учтены ограничения из анкеты: ${esc(D.settings.healthLimits)}. При сомнениях согласуй нагрузку с врачом.` : ''}</div>
@@ -167,7 +167,11 @@ function body(D) {
       <div class="row"><span>Тренд</span><span class="sp"></span><b>${num(t.current, 1)} кг</b></div>
       <div class="row"><span>Темп за 3 недели</span><span class="sp"></span><b>${rate == null ? '-' : num(rate, 2) + ' кг/нед'}</b></div>
       <div class="row"><span>Цель по весу</span><span class="sp"></span><b>${D.settings.goalWeightKg ? num(D.settings.goalWeightKg, 1) + ' кг' : '<a data-a="go" data-v="settings">задать</a>'}</b></div>
-      <div class="row"><span>Целевой темп</span><span class="sp"></span><b>${num(D.settings.goalRatePct, 1)}% веса/нед</b></div>
+      ${t.byDate ? `<div class="row"><span>Срок цели</span><span class="sp"></span><b>${fmtDate(t.byDate.date)} (${t.byDate.weeks} нед)</b></div>
+      <div class="row"><span>Нужно в неделю</span><span class="sp"></span><b>${num(t.byDate.needKgWeek, 2)} кг (${num(t.byDate.needPct, 1)}%)</b></div>
+      <div class="row"><span>План даёт</span><span class="sp"></span><b>${num(t.byDate.planKgWeek, 2)} кг/нед</b></div>
+      <div class="note ${t.byDate.feasible ? 'good' : 'warn'}" style="margin:4px 0">${t.byDate.feasible ? 'Цель к сроку достижима при этом плане.' : `К сроку реально около ${num(t.byDate.projected, 0)} кг. Быстрее небезопасно: ускоряют шаги и тренировки, а не урезание еды.`}</div>`
+      : `<div class="row"><span>Целевой темп</span><span class="sp"></span><b>${num(D.settings.goalRatePct, 1)}% веса/нед</b></div>`}
       <hr style="margin:6px 0"><div class="row"><span>Расход по формуле</span><span class="sp"></span><b>${int(t.formula)}</b></div>
       ${t.watch ? `<div class="row"><span>Расход по Apple Watch</span><span class="sp"></span><b>${int(t.watch)}</b></div>` : ''}
       ${t.adaptive ? `<div class="row"><span>По факту (еда и вес)</span><span class="sp"></span><b>${int(t.adaptive)}</b></div>` : `<div class="tiny muted">Фактический расход появится после 12+ дней записи питания за 3 недели.</div>`}

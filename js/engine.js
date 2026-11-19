@@ -8,7 +8,7 @@ import { TRACKS } from './content/curriculum.js';
 
 export const DEFAULT_SETTINGS = {
   name: '',
-  sex: 'm', age: 27, heightCm: null, goalWeightKg: null, goalRatePct: 0.6, activityFactor: 1.45,
+  sex: 'm', age: 27, heightCm: null, goalWeightKg: null, goalDate: null, goalRatePct: 0.6, activityFactor: 1.45,
   wake: '05:45', workStart: '07:00', workEnd: '18:00', commuteMin: 30, bedtime: '22:15',
   sleepTargetH: 7.5, dinnerMin: 35, choresMin: 20, decompressMin: 15, windDownMin: 30,
   focusSpanMin: 35, leisureMinDaily: 75,
@@ -275,11 +275,34 @@ export function energyTargets({ settings, trend, today, foodByDay, daily }) {
   }
   const goal = s.goalWeightKg;
   const losing = goal == null || goal < cur - 0.3;
-  const ratePct = clamp(s.goalRatePct ?? 0.6, 0, 1);
-  let deficit = losing ? cur * ratePct / 100 * 7700 / 7 : 0;
-  deficit = Math.min(deficit, tdee * 0.25);
   const floor = s.sex === 'f' ? 1200 : 1500;
+  // Режим «цель к дате»: темп считается из остатка до цели и недель до срока.
+  // Потолок: 1,25% веса в неделю и дефицит не больше 35% расхода (дальше растёт потеря мышц).
+  let byDate = null, ratePct = clamp(s.goalRatePct ?? 0.6, 0, 1), capShare = 0.25;
+  if (losing && goal && s.goalDate) {
+    const weeks = Math.max(1, daysBetween(today, s.goalDate) / 7);
+    const needKgWeek = (cur - goal) / weeks;
+    const needPct = needKgWeek / cur * 100;
+    ratePct = clamp(needPct, 0.25, 1.25); capShare = 0.35;
+    byDate = { weeks: Math.round(weeks), needKgWeek, needPct, date: s.goalDate };
+  }
+  let deficit = losing ? cur * ratePct / 100 * 7700 / 7 : 0;
+  deficit = Math.min(deficit, tdee * capShare);
   const kcal = Math.round(Math.max(floor, tdee - deficit) / 10) * 10;
+  if (byDate) {
+    const kgWeek = (tdee - kcal) * 7 / 7700;
+    byDate.planKgWeek = kgWeek;
+    // Прогноз по неделям: расход падает вместе с весом, план каждую неделю пересчитывается по тем же правилам.
+    let w = cur; const b0 = bmr(s, cur);
+    for (let i = 0; i < byDate.weeks && w > goal; i++) {
+      const td = tdee * bmr(s, w) / b0, left = Math.max(1, byDate.weeks - i);
+      const pct = clamp((w - goal) / left / w * 100, 0.25, 1.25);
+      const def = Math.min(w * pct / 100 * 7700 / 7, td * 0.35, td - floor);
+      w -= Math.max(0, def) * 7 / 7700;
+    }
+    byDate.projected = Math.max(goal, w);
+    byDate.feasible = byDate.projected <= goal + 1;
+  }
   const refKg = goal && goal < cur ? Math.max(goal, cur * 0.85) : cur;
   const protein = Math.round(Math.min(refKg * 1.8, cur * 2.2));
   const fat = Math.round(Math.max(cur * 0.8, kcal * 0.27 / 9));
@@ -287,7 +310,7 @@ export function energyTargets({ settings, trend, today, foodByDay, daily }) {
   return {
     tdee: Math.round(tdee), formula: Math.round(formula), watch: watch && Math.round(watch),
     adaptive: adaptive && Math.round(adaptive), source, kcal, protein, fat, carbs,
-    preliminary: !s.heightCm, deficit: Math.round(tdee - kcal), expectedKgWeek: (tdee - kcal) * 7 / 7700, loggedDays: logged.length, current: cur
+    preliminary: !s.heightCm, deficit: Math.round(tdee - kcal), expectedKgWeek: (tdee - kcal) * 7 / 7700, loggedDays: logged.length, current: cur, byDate
   };
 }
 
@@ -296,7 +319,7 @@ export function weightAdvice(trend, today, settings) {
   if (rate == null || !trend.length) return null;
   const cur = trend[trend.length - 1].trend;
   const pct = rate / cur * 100;
-  if (pct < -1.0) return { level: 'warn', text: `Снижение ${num(-rate, 2)} кг/нед (${num(-pct, 1)}%): быстрее безопасного. Добавь 150-200 ккал в день, сохрани белок.` };
+  if (pct < (settings.goalDate ? -1.4 : -1.0)) return { level: 'warn', text: `Снижение ${num(-rate, 2)} кг/нед (${num(-pct, 1)}%): быстрее безопасного. Добавь 150-200 ккал в день, сохрани белок.` };
   if (settings.goalWeightKg && cur > settings.goalWeightKg && pct > -0.15) {
     return { level: 'info', text: `Тренд почти не меняется 3 недели (${num(rate, 2)} кг/нед). Проверь точность записи питания или добавь 1500-2000 шагов в день до снижения калорий.` };
   }

@@ -1,5 +1,5 @@
 // Service worker: офлайн-доступ к оболочке приложения. Данные хранятся в IndexedDB, API не кэшируется.
-const VERSION = 'lifeos-v3.1.0';
+const VERSION = 'lifeos-v3.2.0';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/app.js', './js/util.js', './js/engine.js', './js/store.js', './js/sync.js', './js/data.js', './js/ui.js', './js/charts.js', './js/demo.js',

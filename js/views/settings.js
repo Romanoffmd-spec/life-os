@@ -64,8 +64,11 @@ function syncTab(D) {
       <input type="url" name="url" placeholder="https://xxxx.supabase.co" value="${esc(c?.url || '')}" required><input type="text" name="key" placeholder="anon public key" value="${esc(c?.anonKey || '')}" required>
       <div class="dlg-f"><button class="btn pri">Сохранить</button></div></form>`
     : !ses ? `<form data-f="sb-auth" class="col"><div class="small">Проект: <code>${esc(c.url)}</code> <a data-a="sb-reset" style="cursor:pointer">изменить</a></div>
-      <input type="email" name="email" placeholder="Email" autocomplete="username" required><input type="password" name="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" required minlength="8">
-      <div class="dlg-f"><button type="button" class="btn" data-a="sb-signup">Создать аккаунт</button><button class="btn pri">Войти</button></div></form>`
+      <input type="email" name="email" placeholder="Email" autocomplete="username" required>
+      <button type="button" class="btn pri" data-a="sb-magic">Войти по ссылке на почту</button>
+      <div class="tiny muted">Без пароля: придёт письмо, нажми ссылку в нём на этом устройстве. Аккаунт создастся сам. Или с паролем:</div>
+      <input type="password" name="password" placeholder="Пароль (от 8 символов)" autocomplete="current-password" minlength="8">
+      <div class="dlg-f"><button type="button" class="btn" data-a="sb-signup">Создать аккаунт</button><button class="btn">Войти</button></div></form>`
     : `<div class="col small"><div class="row"><span>Аккаунт</span><span class="sp"></span><b>${esc(ses.user?.email || '')}</b></div><div class="row"><span>Проект</span><span class="sp"></span><code class="tiny">${esc(c.url)}</code></div>
       <div class="row"><span>Статус</span><span class="sp"></span><b>${{ ok: 'синхронизировано', syncing: 'синхронизация…', error: 'ошибка', offline: 'нет сети', idle: 'ожидание' }[st.status]}</b></div>
       ${st.error ? `<div class="note warn">${esc(st.error)}</div>` : ''}
@@ -149,6 +152,11 @@ function download(name, text, type) { const a = document.createElement('a'); a.h
 on({
   's-tab': (ds) => { tab = ds.v; window.__rerender(); },
   'sb-reset': () => { tab = 'sync-edit'; window.__rerender(); tab = 'sync'; },
+  'sb-magic': async (ds, el) => {
+    const email = el.closest('form').email.value.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Впиши email');
+    try { await sync.sendMagicLink(email); toast('Письмо отправлено: открой его на этом устройстве и нажми ссылку'); } catch (e) { toast('Не получилось: ' + e.message); }
+  },
   'sb-signup': async (ds, el) => {
     const form = el.closest('form'); const email = form.email.value.trim(), pw = form.password.value;
     if (!email || pw.length < 8) return toast('Email и пароль от 8 символов');

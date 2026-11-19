@@ -64,13 +64,39 @@ export async function signUp(email, password) {
 export async function signIn(email, password) {
   const d = await http('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password } });
   await saveSession(d);
+  await afterLogin(d.user?.id);
+}
+async function afterLogin(userId) {
   // новый аккаунт на этом устройстве: тянем всё с начала
-  if (store.getMeta('syncUser') !== d.user?.id) {
+  if (store.getMeta('syncUser') !== userId) {
     await store.setMeta('cursorItems', null); await store.setMeta('cursorHealth', null);
-    await store.setMeta('syncUser', d.user?.id);
+    await store.setMeta('syncUser', userId);
   }
   syncSoon(0);
 }
+
+/** Вход без пароля: письмо со ссылкой. Новый аккаунт создаётся автоматически. */
+export async function sendMagicLink(email) {
+  const back = location.origin + location.pathname;
+  await http('/auth/v1/otp?redirect_to=' + encodeURIComponent(back), { method: 'POST', auth: false, body: { email: String(email).trim(), create_user: true } });
+}
+
+/** Возврат по ссылке из письма: токены приходят во фрагменте адреса. */
+export async function consumeAuthRedirect() {
+  const h = location.hash.slice(1);
+  if (!/(^|&)(access_token|error_description)=/.test(h)) return null;
+  const p = new URLSearchParams(h);
+  history.replaceState(null, '', location.pathname + location.search);
+  if (p.get('error_description')) return { error: p.get('error_description').replace(/\+/g, ' ') };
+  const c = config();
+  const r = await fetch(c.url + '/auth/v1/user', { headers: { apikey: c.anonKey, Authorization: 'Bearer ' + p.get('access_token') } });
+  if (!r.ok) return { error: 'ссылка устарела, запроси новую' };
+  const user = await r.json();
+  await saveSession({ access_token: p.get('access_token'), refresh_token: p.get('refresh_token'), expires_in: Number(p.get('expires_in')) || 3600, user });
+  await afterLogin(user.id);
+  return { email: user.email };
+}
+
 export async function signOut() {
   try { await http('/auth/v1/logout', { method: 'POST' }); } catch { }
   await store.setMeta('session', null);

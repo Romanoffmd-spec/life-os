@@ -227,7 +227,9 @@ async function boot() {
   if (!store.get('settings')) data.saveSettings({});
   seedStart();
   bind();
+  let viaLink = null; try { viaLink = await sync.consumeAuthRedirect(); } catch { }
   route = ROUTES[location.hash.slice(1)] ? location.hash.slice(1) : 'today';
+  if (viaLink) setTimeout(() => toast(viaLink.error ? 'Вход не удался: ' + viaLink.error : `Вход выполнен: ${viaLink.email}. Данные синхронизируются.`), 900);
   store.subscribe(() => render());
   sync.onStatus(syncIndicator);
   sync.startAuto();
